@@ -3,13 +3,13 @@
 namespace Hug\Database;
 
 use PDO;
+use Exception;
 use PDOException;
 
 /**
  *
- * @package \class
  */
-class MySqlDB
+class SqlLiteDB
 {
 
     /**
@@ -20,6 +20,8 @@ class MySqlDB
     private static $_instance = null;
 
     public $dbh; // handle of the db connexion
+
+    // public $db_path;
     
     /**
      * Constructeur de la classe
@@ -27,46 +29,38 @@ class MySqlDB
      * @param void
      * @return void
      */
-    private function __construct($host = null, $port = null, $user = null, $pass = null, $name = null, $env = 'prod')
+    private function __construct($path, $user = null, $pass = null, $name = null, $env = 'prod')
     {
-        if(defined('MYSQL_DB_HOST') && $host === null)
-            $host = MYSQL_DB_HOST;
-        if(defined('MYSQL_DB_PORT') && $port === null)
-            $port = MYSQL_DB_PORT;
-        if(defined('MYSQL_DB_USER') && $user === null)
-            $user = MYSQL_DB_USER;
-        if(defined('MYSQL_DB_PASS') && $pass === null)
-            $pass = MYSQL_DB_PASS;
-        if(defined('MYSQL_DB_NAME') && $name === null)
-            $name = MYSQL_DB_NAME;
-        if(defined('MYSQL_DB_ENV') && $env === null)
-            $env = MYSQL_DB_ENV;
+        // $this->db_path = $db_path;
+
+        if(defined('SQLLITE_DB_PATH') && $path === null)
+            $path = SQLLITE_DB_PATH;
+        if(defined('SQLLITE_DB_USER') && $user === null)
+            $user = SQLLITE_DB_USER;
+        if(defined('SQLLITE_DB_PASS') && $pass === null)
+            $pass = SQLLITE_DB_PASS;
+        if(defined('SQLLITE_DB_NAME') && $name === null)
+            $name = SQLLITE_DB_NAME;
+        if(defined('SQLLITE_DB_ENV') && $env === null)
+            $env = SQLLITE_DB_ENV;
 
         try
         {
-            # Set Options
-            # http://php.net/manual/en/ref.pdo-mysql.php */
-            $options = array(
-                PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8',
-                PDO::MYSQL_ATTR_FOUND_ROWS => true,
-                // to prevent errors when multi threads
-                PDO::ATTR_PERSISTENT => false
-            );
-
             # Create Connection
-            $this->dbh = new PDO(
-                'mysql:host='.$host.';dbname='.$name, 
-                $user, 
-                $pass, 
-                $options
-            );          
+            # SQLITE 3
+            $this->dbh = new PDO('sqlite:'.$path);
+
+            $this->dbh->setAttribute(
+                PDO::ATTR_DEFAULT_FETCH_MODE, 
+                PDO::FETCH_ASSOC
+            );
             
             # Error Reporting
             if($env==='prod')
             {
                 # Prod
                 $this->dbh->setAttribute(
-                    PDO::ATTR_ERRMODE,
+                    PDO::ATTR_ERRMODE, 
                     PDO::ERRMODE_EXCEPTION
                 );
             }
@@ -74,11 +68,10 @@ class MySqlDB
             {
                 # Dev
                 $this->dbh->setAttribute(
-                    PDO::ATTR_ERRMODE,
+                    PDO::ATTR_ERRMODE, 
                     PDO::ERRMODE_WARNING
                 );
             }
-
         }
         catch(PDOException $e)
         {
@@ -93,12 +86,12 @@ class MySqlDB
      * @param void
      * @return Singleton
      */
-    public static function getInstance($host = null, $port = null, $user = null, $pass = null, $name = null, $env = 'prod')
+    public static function getInstance($path = null, $user = null, $pass = null, $name = null, $env = 'prod')
     {
         if (!isset(self::$_instance))
         {
             $object = __CLASS__;
-            self::$_instance = new $object($host, $port, $user, $pass, $name, $env);
+            self::$_instance = new $object($path, $user, $pass, $name, $env);
         }
         return self::$_instance;
     }
@@ -112,13 +105,17 @@ class MySqlDB
         try
         {
             # List Tables
-            $query = $this->dbh->prepare('show tables');
+            // $query = $BDD->dbh->query("SELECT name FROM sqlite_master WHERE type='table' AND name='proxies' COLLATE NOCASE;");
+            // $res = $query->fetch();
+            // $table_exists = $res['name']==='proxies' ? true: false;
+
+            $query = $this->dbh->prepare('SELECT name FROM sqlite_master WHERE type="table" COLLATE NOCASE;');
             $query->execute();
 
-            while($rows = $query->fetch())
+            while($row = $query->fetch())
             {
-                $tables[] = $rows[0];
-                //var_dump($rows);
+                $tables[] = $row['name'];
+                // var_dump($row);
             }
         }
         catch (PDOException $e)
@@ -153,7 +150,7 @@ class MySqlDB
     /**
      *
      */
-    public function create_table($table, $columns = 'ID INT( 11 ) AUTO_INCREMENT PRIMARY KEY')
+    public function create_table($table, $columns = 'ID INTEGER PRIMARY KEY AUTOINCREMENT')
     {
         $created = false;
 
@@ -178,7 +175,7 @@ class MySqlDB
         $truncated = false;
         try
         {
-            $truncate_tables = $this->dbh->prepare('TRUNCATE TABLE `'.$table.'`');
+            $truncate_tables = $this->dbh->prepare('DELETE FROM `'.$table.'`; DELETE FROM SQLITE_SEQUENCE WHERE name=`'.$table.'`;');
             $truncate_tables->execute();
             $truncated = true;
         }
