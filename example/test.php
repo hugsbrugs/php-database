@@ -15,6 +15,10 @@ var_dump($exists);
 $exists = $db1->table_exists('coucou');
 var_dump($exists);
 
+$db1->create_table('tatayoyo');
+$db1->truncate_table('tatayoyo');
+$db1->drop_table('tatayoyo');
+
 # Or pass params
 $db2 = MySqlDB::getInstance(
 	$host = 'localhost', 

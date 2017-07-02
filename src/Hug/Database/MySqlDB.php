@@ -29,14 +29,6 @@ class MySqlDB
      */
     private function __construct($host = null, $port = null, $user = null, $pass = null, $name = null, $env = 'prod')
     {
-
-        error_log('host 1 : ' . $host);
-        error_log('port 1 : ' . $port);
-        error_log('user 1 : ' . $user);
-        error_log('pass 1 : ' . $pass);
-        error_log('name 1 : ' . $name);
-        error_log('env 1 : ' . $env);
-
         if(defined('DB_HOST') && $host === null)
             $host = DB_HOST;
         if(defined('DB_PORT') && $port === null)
@@ -49,20 +41,6 @@ class MySqlDB
             $name = DB_NAME;
         if(defined('DB_ENV') && $env === null)
             $env = DB_ENV;
-
-        // error_log('host : ' . DB_HOST);
-        // error_log('port : ' . DB_PORT);
-        // error_log('user : ' . DB_USER);
-        // error_log('pass : ' . DB_PASS);
-        // error_log('name : ' . DB_NAME);
-        // error_log('env : ' . DB_ENV);
-
-        error_log('host 2 : ' . $host);
-        error_log('port 2 : ' . $port);
-        error_log('user 2 : ' . $user);
-        error_log('pass 2 : ' . $pass);
-        error_log('name 2 : ' . $name);
-        error_log('env 2 : ' . $env);
 
         try
         {
@@ -131,35 +109,103 @@ class MySqlDB
     public function list_tables()
     {
         $tables = [];
-        # List Tables
-        $query = $this->dbh->prepare('show tables');
-        $query->execute();
-
-        while($rows = $query->fetch())
+        try
         {
-            $tables[] = $rows[0];
-            //var_dump($rows);
+            # List Tables
+            $query = $this->dbh->prepare('show tables');
+            $query->execute();
+
+            while($rows = $query->fetch())
+            {
+                $tables[] = $rows[0];
+                //var_dump($rows);
+            }
         }
+        catch (PDOException $e)
+        {
+            error_log('List Tables : ' . $e->getMessage());
+        }
+
         return $tables;
     }
+
     /**
      *
      */
     public function table_exists($table)
     {
-        $exists = true;
+        $exists = false;
         # Try a select statement against the table
         # Run it in try/catch in case PDO is in ERRMODE_EXCEPTION.
         try
         {
-            $result = $this->dbh->query("SELECT 1 FROM $table LIMIT 1");
+            $result = $this->dbh->query('SELECT 1 FROM '.$table.' LIMIT 1');
+            $exists = true;
         }
         catch (PDOException $e)
         {
-            # We got an exception == table not found
-            $exists = false;
+            error_log('Table Exists : ' . $e->getMessage());
         }
 
         return $exists;
+    }
+
+    /**
+     *
+     */
+    public function create_table($table, $columns = 'ID INT( 11 ) AUTO_INCREMENT PRIMARY KEY')
+    {
+        $created = false;
+
+        try
+        {
+            $result = $this->dbh->exec('CREATE TABLE IF NOT EXISTS '.$table.' ('.$columns.')');
+            $created = true;
+        }
+        catch (PDOException $e)
+        {
+            error_log('Create Table : ' . $e->getMessage());
+        }
+
+        return $created;
+    }
+
+    /**
+     *
+     */
+    public function truncate_table($table)
+    {
+        $truncated = false;
+        try
+        {
+            $truncate_tables = $this->dbh->prepare('TRUNCATE TABLE `'.$table.'`');
+            $truncate_tables->execute();
+            $truncated = true;
+        }
+        catch (PDOException $e)
+        {
+            error_log('Truncate Table : ' . $e->getMessage());
+        }
+
+        return $truncated;
+    }
+
+    /**
+     *
+     */
+    public function drop_table($table)
+    {
+        $dropped = false;
+        try
+        {
+             $this->dbh->exec('DROP TABLE IF EXISTS ' . $table);
+             $dropped = true;
+        }
+        catch (PDOException $e)
+        {
+            error_log('Drop Table : ' . $e->getMessage());
+        }
+
+        return $dropped;
     }
 }
