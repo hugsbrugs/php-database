@@ -1,0 +1,15 @@
+{
+    "name": "hugsbrugs/php-database",
+    "description": "PHP Database Utilities",
+    "authors": [
+        {
+            "name": "Hugo Maugey",
+            "email": "hugo@maugey.fr",
+            "homepage": "https://hugo.maugey.fr",
+            "role": "Developer"
+        }
+    ],
+    "autoload":{
+    	"psr-4": {"Hug\\": "src/Hug/"}
+    }
+}
