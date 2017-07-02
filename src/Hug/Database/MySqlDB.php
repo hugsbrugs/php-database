@@ -3,6 +3,7 @@
 namespace Hug\Database;
 
 use PDO;
+use PDOException;
 
 /**
  *
@@ -122,5 +123,43 @@ class MySqlDB
             self::$_instance = new $object($host = null, $port = null, $user = null, $pass = null, $name = null, $env = 'prod');
         }
         return self::$_instance;
+    }
+
+    /**
+     *
+     */
+    public function list_tables()
+    {
+        $tables = [];
+        # List Tables
+        $query = $this->dbh->prepare('show tables');
+        $query->execute();
+
+        while($rows = $query->fetch())
+        {
+            $tables[] = $rows[0];
+            //var_dump($rows);
+        }
+        return $tables;
+    }
+    /**
+     *
+     */
+    public function table_exists($table)
+    {
+        $exists = true;
+        # Try a select statement against the table
+        # Run it in try/catch in case PDO is in ERRMODE_EXCEPTION.
+        try
+        {
+            $result = $this->dbh->query("SELECT 1 FROM $table LIMIT 1");
+        }
+        catch (PDOException $e)
+        {
+            # We got an exception == table not found
+            $exists = false;
+        }
+
+        return $exists;
     }
 }
