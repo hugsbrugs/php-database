@@ -98,7 +98,7 @@ class MySqlDB
         if (!isset(self::$_instance))
         {
             $object = __CLASS__;
-            self::$_instance = new $object($host = null, $port = null, $user = null, $pass = null, $name = null, $env = 'prod');
+            self::$_instance = new $object($host, $port, $user, $pass, $name, $env);
         }
         return self::$_instance;
     }
